@@ -1,36 +1,219 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Carête Montage
 
-## Getting Started
+Автоматическое создание монтажных листов для видео с помощью AI (Gemini 2.5 Flash).
 
-First, run the development server:
+## Возможности
+
+- 🎬 Загрузка видео и автоматический анализ
+- 🤖 AI-powered обработка с помощью Gemini 2.5 Flash через Replicate
+- 📊 Детальные монтажные листы с таймкодами, планами и диалогами
+- 📥 Экспорт в Excel формат
+- 🔐 Безопасная аутентификация с email подтверждением
+- 🌙 Современный темный интерфейс
+
+## Технологии
+
+- **Frontend/Backend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Storage**: Supabase Storage
+- **AI Processing**: Replicate API (Gemini 2.5 Flash)
+- **Export**: xlsx
+
+## Начало работы
+
+### 1. Установка зависимостей
+
+```bash
+npm install
+```
+
+### 2. Настройка Supabase
+
+1. Откройте [SETUP.md](./SETUP.md) для детальных инструкций
+2. Примените SQL миграцию из файла `supabase-migration.sql` в Supabase SQL Editor
+3. Создайте Storage bucket `videos`
+4. Настройте Storage policies (инструкции в SETUP.md)
+
+### 3. Переменные окружения
+
+Файл `.env.local` уже создан с вашими ключами. Убедитесь, что все значения корректны:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://goykmdyodqhptkzfgumq.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+REPLICATE_API_TOKEN=your_replicate_token
+```
+
+### 4. Запуск приложения
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение будет доступно на http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Структура проекта
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+carete-montage/
+├── app/
+│   ├── api/
+│   │   ├── upload/route.ts         # Загрузка видео
+│   │   ├── process-video/route.ts  # Обработка через Gemini
+│   │   ├── export/[videoId]/       # Экспорт в Excel
+│   │   └── videos/[id]/            # Удаление видео
+│   ├── auth/
+│   │   ├── login/                  # Страница входа
+│   │   ├── register/               # Страница регистрации
+│   │   └── callback/               # Email подтверждение
+│   ├── dashboard/
+│   │   ├── page.tsx                # Главная страница
+│   │   └── [videoId]/page.tsx      # Просмотр монтажного листа
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── DashboardClient.tsx         # Главная страница (клиент)
+│   ├── VideoCard.tsx               # Карточка видео
+│   ├── UploadModal.tsx             # Модальное окно загрузки
+│   ├── UserMenu.tsx                # Меню пользователя
+│   └── MontageTableClient.tsx      # Таблица монтажного листа
+├── lib/
+│   ├── supabase/                   # Клиенты Supabase
+│   ├── parseGeminiResponse.ts      # Парсер ответов AI
+│   └── gemini-prompt.ts            # Промпт для Gemini
+├── types/
+│   └── index.ts                    # TypeScript типы
+└── middleware.ts                   # Защита маршрутов
+```
 
-## Learn More
+## Использование
 
-To learn more about Next.js, take a look at the following resources:
+### 1. Регистрация
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Перейдите на `/auth/register`
+2. Введите email и пароль
+3. Подтвердите email по ссылке в письме
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Загрузка видео
 
-## Deploy on Vercel
+1. После входа нажмите "Новый лист"
+2. Загрузите видео (drag & drop или выбор файла)
+3. Дождитесь завершения обработки (статус обновляется автоматически)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 3. Просмотр монтажного листа
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Кликните на карточку готового видео
+2. Просмотрите таблицу с планами, таймкодами и диалогами
+3. Разверните длинные записи кнопкой со стрелкой
+
+### 4. Экспорт в Excel
+
+1. На странице монтажного листа нажмите "Скачать excel"
+2. Или нажмите иконку скачивания на карточке видео в dashboard
+
+## API Endpoints
+
+### POST `/api/upload`
+Загрузка видео в Supabase Storage и запуск обработки.
+
+**Body (FormData):**
+- `file`: Video file
+- `userId`: User ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "video": { ... }
+}
+```
+
+### POST `/api/process-video`
+Обработка видео через Replicate API (Gemini 2.5 Flash).
+
+**Body:**
+```json
+{
+  "videoId": "uuid",
+  "videoUrl": "signed_url"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "sheetId": "uuid",
+  "entriesCount": 42
+}
+```
+
+### GET `/api/export/[videoId]`
+Экспорт монтажного листа в Excel.
+
+**Response:** Excel file (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+
+### DELETE `/api/videos/[id]`
+Удаление видео и связанных данных.
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+## База данных
+
+### Таблицы
+
+- `profiles` - Профили пользователей
+- `videos` - Загруженные видео
+- `montage_sheets` - Монтажные листы
+- `montage_entries` - Записи в монтажных листах (планы)
+
+### Row Level Security (RLS)
+
+Все таблицы защищены RLS политиками - пользователи видят только свои данные.
+
+## Деплой
+
+### Vercel (рекомендуется)
+
+```bash
+# Установите Vercel CLI
+npm i -g vercel
+
+# Деплой
+vercel
+
+# Добавьте переменные окружения в Vercel Dashboard
+```
+
+## Troubleshooting
+
+### Видео не обрабатывается
+
+1. Проверьте логи в консоли разработчика
+2. Убедитесь, что Replicate API token корректный
+3. Проверьте, что Storage bucket настроен правильно
+
+### Ошибка при регистрации
+
+1. Убедитесь, что Email provider включен в Supabase
+2. Проверьте Site URL в настройках Supabase
+
+### Не загружаются видео
+
+1. Проверьте Storage policies в Supabase
+2. Убедитесь, что bucket `videos` создан
+
+## Лицензия
+
+MIT
+
+## Поддержка
+
+Если у вас возникли вопросы или проблемы, создайте issue в репозитории.
